@@ -10,11 +10,15 @@ public class Tetris {
     //Represents the held piece, -1 represents empty
     public int held = -1;
 
+    public int tickCount = 0;
+    public int gravityTicks;
+    public int lines = 0;
+
     //Define pieces
     public String[][][] pieces = {Piece.I, Piece.L, Piece.J, Piece.O, Piece.S, Piece.T, Piece.Z};
 
     //Creates a new board and makes it empty
-    public Tetris(int x, int y){
+    public Tetris(int x, int y, int gravity){
         currentBoard = new String[y][x];
 
         for(int i = 0; i < y; i++){
@@ -22,6 +26,8 @@ public class Tetris {
                 currentBoard[i][j] = "  ";
             }
         }
+        
+        gravityTicks = gravity;
 
         switchActive();
     }
@@ -57,19 +63,15 @@ public class Tetris {
         //Gravity
         //If not colliding, move down and return
         if(isValid(new int[]{position[0] + 1, position[1], position[2]})) {
-            position[0]++;
+            if(tickCount % (gravityTicks - (int)(lines / 10)) == 0){
+                position[0]++;
+            }
+            tickCount++;
             return;
         }
 
         //Otherwise, add the piece to the current board
-        String[][] newPiece = rotateArray(cloneActivePiece(), position[2]);
-        for(int i = 0; i < newPiece.length; i++){
-            for(int j = 0; j < newPiece[i].length; j++){
-                if(!newPiece[i][j].equals("  ")) {
-                    currentBoard[position[0] + i][position[1] + j] = newPiece[i][j];
-                }
-            }
-        }
+        currentBoard = overlay();
 
         //Change active piece
         switchActive();
@@ -77,6 +79,7 @@ public class Tetris {
         //Check for full lines
         for(int i = currentBoard.length - 1; i >= 0; i--){
             if(!Arrays.asList(currentBoard[i]).contains("  ")){
+                lines++;
                 //If found, move all lines above it downwards
                 for(int j = i; j > 0; j--){
                     currentBoard[j] = currentBoard[j - 1];
@@ -86,16 +89,6 @@ public class Tetris {
                 i++;
             }
         }
-
-        /*
-        TODO:
-        Add score and lines cleared
-
-        Better controls
-        Gravity every other tick?
-        Fix bugs?
-        */
-
     }
 
     public void move(int direction){
@@ -231,6 +224,8 @@ public class Tetris {
         StringBuilder output = new StringBuilder();
         String[][] newBoard = overlay();
 
+        output.append("\033[H\033[2J");
+
         for(int i = 0; i < newBoard.length; i++){
             for(int j = 0; j < newBoard[i].length; j++){
                 output.append(colors.get(codes.indexOf(newBoard[i][j])));
@@ -240,11 +235,7 @@ public class Tetris {
             output.append("\n");
         }
 
-        /*
-        TODO:
-        Add score and lines cleared
-        Shadow
-        */
+        output.append("Lines: " + lines + "\n");
 
         return output.toString();
     }
